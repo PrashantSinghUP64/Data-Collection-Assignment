@@ -1,0 +1,122 @@
+[
+    {
+        "title": "A Light in the Attic",
+        "price": "\u00c2\u00a351.77",
+        "numeric_price": 51.77,
+        "rating": 3
+    },
+    {
+        "title": "Tipping the Velvet",
+        "price": "\u00c2\u00a353.74",
+        "numeric_price": 53.74,
+        "rating": 1
+    },
+    {
+        "title": "Soumission",
+        "price": "\u00c2\u00a350.10",
+        "numeric_price": 50.1,
+        "rating": 1
+    },
+    {
+        "title": "Sharp Objects",
+        "price": "\u00c2\u00a347.82",
+        "numeric_price": 47.82,
+        "rating": 4
+    },
+    {
+        "title": "Sapiens: A Brief History of Humankind",
+        "price": "\u00c2\u00a354.23",
+        "numeric_price": 54.23,
+        "rating": 5
+    },
+    {
+        "title": "The Requiem Red",
+        "price": "\u00c2\u00a322.65",
+        "numeric_price": 22.65,
+        "rating": 1
+    },
+    {
+        "title": "The Dirty Little Secrets of Getting Your Dream Job",
+        "price": "\u00c2\u00a333.34",
+        "numeric_price": 33.34,
+        "rating": 4
+    },
+    {
+        "title": "The Coming Woman: A Novel Based on the Life of the Infamous Feminist, Victoria Woodhull",
+        "price": "\u00c2\u00a317.93",
+        "numeric_price": 17.93,
+        "rating": 3
+    },
+    {
+        "title": "The Boys in the Boat: Nine Americans and Their Epic Quest for Gold at the 1936 Berlin Olympics",
+        "price": "\u00c2\u00a322.60",
+        "numeric_price": 22.6,
+        "rating": 4
+    },
+    {
+        "title": "The Black Maria",
+        "price": "\u00c2\u00a352.15",
+        "numeric_price": 52.15,
+        "rating": 1
+    },
+    {
+        "title": "Starving Hearts (Triangular Trade Trilogy, #1)",
+        "price": "\u00c2\u00a313.99",
+        "numeric_price": 13.99,
+        "rating": 2
+    },
+    {
+        "title": "Shakespeare's Sonnets",
+        "price": "\u00c2\u00a320.66",
+        "numeric_price": 20.66,
+        "rating": 4
+    },
+    {
+        "title": "Set Me Free",
+        "price": "\u00c2\u00a317.46",
+        "numeric_price": 17.46,
+        "rating": 5
+    },
+    {
+        "title": "Scott Pilgrim's Precious Little Life (Scott Pilgrim #1)",
+        "price": "\u00c2\u00a352.29",
+        "numeric_price": 52.29,
+        "rating": 5
+    },
+    {
+        "title": "Rip it Up and Start Again",
+        "price": "\u00c2\u00a335.02",
+        "numeric_price": 35.02,
+        "rating": 5
+    },
+    {
+        "title": "Our Band Could Be Your Life: Scenes from the American Indie Underground, 1981-1991",
+        "price": "\u00c2\u00a357.25",
+        "numeric_price": 57.25,
+        "rating": 3
+    },
+    {
+        "title": "Olio",
+        "price": "\u00c2\u00a323.88",
+        "numeric_price": 23.88,
+        "rating": 1
+    },
+    {
+        "title": "Mesaerion: The Best Science Fiction Stories 1800-1849",
+        "price": "\u00c2\u00a337.59",
+        "numeric_price": 37.59,
+        "rating": 1
+    },
+    {
+        "title": "Libertarianism for Beginners",
+        "price": "\u00c2\u00a351.33",
+        "numeric_price": 51.33,
+        "rating": 2
+    },
+    {
+        "title": "It's Only the Himalayas",
+        "price": "\u00c2\u00a345.17",
+        "numeric_price": 45.17,
+        "rating": 2
+    }
+]
