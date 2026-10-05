@@ -24,7 +24,7 @@ def analyze_users(users: List[Dict[str, Any]]) -> None:
     print("\n[User Analysis]")
     print(f"- Total Users: {len(users)}")
     
-    companies = [user.get('company') for user in users if isinstance(user, dict) and user.get('company')]
+    companies = [user.get('company') for user in users if isinstance(user, dict) and user.get('company') and user.get('company') != 'Unknown']
     unique_companies = list(set(companies))
     print(f"- Unique Companies: {len(unique_companies)}")
     
@@ -45,13 +45,15 @@ def analyze_books(books: List[Dict[str, Any]]) -> None:
         for title in highest_rated:
             print(f"  * {title}")
     
-    rating_counts: Dict[int, int] = {}
+    # Initialize all rating categories (1-5) to 0
+    rating_counts: Dict[int, int] = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
     for book in books:
         r = book.get('rating', 0)
-        rating_counts[r] = rating_counts.get(r, 0) + 1
+        if r in rating_counts:
+            rating_counts[r] += 1
         
     print("- Number of Books in Each Rating Category:")
-    for rating in sorted(rating_counts.keys(), reverse=True):
+    for rating in range(5, 0, -1):
         print(f"  * Rating {rating}: {rating_counts[rating]} books")
 
 def analyze_data() -> None:

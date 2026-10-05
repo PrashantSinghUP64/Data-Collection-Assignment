@@ -22,6 +22,15 @@ def fetch_users() -> List[Dict[str, Any]]:
         response = requests.get(API_URL, headers=HEADERS, timeout=TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
+    except requests.exceptions.HTTPError as e:
+        logging.error(f"HTTP Error fetching data from API: {e}")
+        return []
+    except requests.exceptions.ConnectionError as e:
+        logging.error(f"Connection Error fetching data from API: {e}")
+        return []
+    except requests.exceptions.Timeout as e:
+        logging.error(f"Timeout Error fetching data from API: {e}")
+        return []
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to fetch data from API: {e}")
         return []

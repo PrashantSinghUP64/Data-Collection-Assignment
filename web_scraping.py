@@ -28,6 +28,15 @@ def fetch_html() -> str:
         response = requests.get(URL, headers=HEADERS, timeout=TIMEOUT_SEC)
         response.raise_for_status()
         return response.text
+    except requests.exceptions.HTTPError as e:
+        logging.error(f"HTTP Error fetching data from website: {e}")
+        return ""
+    except requests.exceptions.ConnectionError as e:
+        logging.error(f"Connection Error fetching data from website: {e}")
+        return ""
+    except requests.exceptions.Timeout as e:
+        logging.error(f"Timeout Error fetching data from website: {e}")
+        return ""
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to fetch data from website: {e}")
         return ""
