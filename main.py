@@ -1,24 +1,30 @@
+"""
+Main entry point for the Data Collection and Processing Assignment.
+Provides a menu-driven CLI interface to execute the workflow steps.
+"""
 import sys
 from api_data import fetch_api_data
 from web_scraping import scrape_book_data
 from json_processing import process_json_data
 from analysis import analyze_data
 
-def display_menu():
-    print("="*40)
+def display_menu() -> None:
+    """Displays the interactive menu options."""
+    print("=" * 40)
     print(" Data Collection and Processing Menu ")
-    print("="*40)
+    print("=" * 40)
     print("1. Fetch API Data")
     print("2. Scrape Book Data")
     print("3. Generate JSON Files (Processing)")
     print("4. Analyze Data")
     print("5. Exit")
-    print("="*40)
+    print("=" * 40)
 
-def main():
+def main() -> None:
+    """Main loop for the menu-driven application."""
     while True:
         display_menu()
-        choice = input("Enter your choice (1-5): ")
+        choice = input("Enter your choice (1-5): ").strip()
         
         if choice == '1':
             fetch_api_data()
@@ -29,10 +35,14 @@ def main():
         elif choice == '4':
             analyze_data()
         elif choice == '5':
-            print("Exiting program")
+            print("Exiting program. Goodbye!")
             sys.exit(0)
         else:
             print("Invalid choice. Please enter a number between 1 and 5.\n")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nProgram interrupted by user. Exiting.")
+        sys.exit(1)
