@@ -22,6 +22,9 @@ def load_json_file(filepath: str) -> List[Dict[str, Any]]:
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON from {filepath}: {e}")
         return []
+    except Exception as e:
+        logging.error(f"Unexpected error occurred loading {filepath}: {e}")
+        return []
 
 def process_json_data() -> None:
     """Main execution function for Part C."""
@@ -32,6 +35,10 @@ def process_json_data() -> None:
     
     if not users or not books:
         print("Missing required JSON data. Please run tasks A and B first.")
+        return
+        
+    if not isinstance(users, list) or not isinstance(books, list):
+        logging.error("Invalid JSON schema: Root element must be a list.")
         return
         
     print(f"\n[Task C1] Total Users Records: {len(users)}")

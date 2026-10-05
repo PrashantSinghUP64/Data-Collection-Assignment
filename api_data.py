@@ -10,12 +10,16 @@ API_URL = "https://jsonplaceholder.typicode.com/users"
 OUTPUT_FILE = "users.json"
 TIMEOUT_SEC = 10
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 def fetch_users() -> List[Dict[str, Any]]:
     """Fetches user data from the JSONPlaceholder API."""
     try:
-        response = requests.get(API_URL, timeout=TIMEOUT_SEC)
+        response = requests.get(API_URL, headers=HEADERS, timeout=TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -24,12 +28,17 @@ def fetch_users() -> List[Dict[str, Any]]:
     except ValueError as e:
         logging.error(f"Failed to parse JSON response: {e}")
         return []
+    except Exception as e:
+        logging.error(f"Unexpected error occurred: {e}")
+        return []
 
 def process_and_display_users(users: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     """Processes user data and extracts relevant fields."""
     processed_users = []
     print("\n[Task A1] User Records:")
     for user in users:
+        if not isinstance(user, dict):
+            continue
         name = user.get('name', 'Unknown')
         username = user.get('username', 'Unknown')
         email = user.get('email', 'Unknown')

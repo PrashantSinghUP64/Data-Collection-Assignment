@@ -12,6 +12,10 @@ URL = "https://books.toscrape.com/"
 OUTPUT_FILE = "books.json"
 TIMEOUT_SEC = 10
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
 RATING_MAP = {
     "One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5
 }
@@ -21,11 +25,14 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 def fetch_html() -> str:
     """Fetches the HTML content from the website."""
     try:
-        response = requests.get(URL, timeout=TIMEOUT_SEC)
+        response = requests.get(URL, headers=HEADERS, timeout=TIMEOUT_SEC)
         response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to fetch data from website: {e}")
+        return ""
+    except Exception as e:
+        logging.error(f"Unexpected error occurred: {e}")
         return ""
 
 def extract_price(price_text: str) -> float:

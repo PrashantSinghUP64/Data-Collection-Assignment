@@ -24,12 +24,13 @@ def analyze_users(users: List[Dict[str, Any]]) -> None:
     print("\n[User Analysis]")
     print(f"- Total Users: {len(users)}")
     
-    companies = [user.get('company') for user in users if user.get('company')]
+    companies = [user.get('company') for user in users if isinstance(user, dict) and user.get('company')]
     unique_companies = list(set(companies))
     print(f"- Unique Companies: {len(unique_companies)}")
     
-    top_5_companies = sorted(unique_companies)[:5]
-    print(f"- Top 5 Companies (Alphabetically): {', '.join(top_5_companies)}")
+    # Sort alphabetically, case-insensitive
+    top_5_companies = sorted(unique_companies, key=lambda x: str(x).lower())[:5]
+    print(f"- Top 5 Companies (Alphabetically): {', '.join(str(c) for c in top_5_companies)}")
 
 def analyze_books(books: List[Dict[str, Any]]) -> None:
     """Analyzes and prints book statistics."""
@@ -62,6 +63,10 @@ def analyze_data() -> None:
     
     if not users or not books:
         print("Required JSON files missing or corrupt. Run data collection first.")
+        return
+        
+    if not isinstance(users, list) or not isinstance(books, list):
+        logging.error("Invalid JSON schema: Expected a list of records.")
         return
 
     analyze_users(users)
