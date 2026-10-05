@@ -1,97 +1,102 @@
 """
-Module for robustly analyzing user and book datasets using standard Python structures.
+Module for robustly analyzing user and book datasets using Pandas (Industry Standard).
 """
-import json
 import logging
-from typing import List, Dict, Any
-from collections import Counter
+import pandas as pd
 
 USERS_FILE = 'users.json'
 BOOKS_FILE = 'books.json'
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-def load_json_file(filepath: str) -> List[Dict[str, Any]]:
-    """Loads, decodes, and returns JSON array data securely."""
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logging.error(f"Failed to load {filepath}: File does not exist.")
-        return []
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON schema parsing failed in {filepath}: {e}")
-        return []
+class DataAnalyzer:
+    """Class to perform industry-standard data analysis using Pandas."""
 
-def analyze_users(users: List[Dict[str, Any]]) -> None:
-    """Computes analytical metrics securely on the Users dataset."""
-    print("\n[User Analysis]")
-    
-    # 1. Total Users
-    print(f"- Total Users: {len(users)}")
-    
-    # Filter valid companies and ensure rigorous data cleaning
-    companies = [
-        user.get('company').strip() for user in users 
-        if isinstance(user, dict) and user.get('company') and user.get('company') != 'Unknown'
-    ]
-    
-    # 2. Unique Companies
-    unique_companies = list(set(companies))
-    print(f"- Unique Companies: {len(unique_companies)}")
-    
-    # 3. Top 5 Companies (Alphabetically) using safe case-insensitive sorting
-    top_5_companies = sorted(unique_companies, key=lambda x: str(x).lower())[:5]
-    print(f"- Top 5 Companies (Alphabetically): {', '.join(str(c) for c in top_5_companies)}")
+    def __init__(self) -> None:
+        self.users_file = USERS_FILE
+        self.books_file = BOOKS_FILE
 
-def analyze_books(books: List[Dict[str, Any]]) -> None:
-    """Computes analytical metrics securely on the Books dataset."""
-    print("\n[Book Analysis]")
-    
-    if not books:
-        print("No book data available for analysis.")
-        return
+    def load_data(self, filepath: str) -> pd.DataFrame:
+        """Loads JSON data into a Pandas DataFrame."""
+        try:
+            return pd.read_json(filepath)
+        except ValueError as e:
+            logging.error(f"JSON schema parsing failed in {filepath}: {e}")
+            return pd.DataFrame()
+        except FileNotFoundError:
+            logging.error(f"Failed to load {filepath}: File does not exist.")
+            return pd.DataFrame()
 
-    # 1. Average Price (rounded mathematically to 2 decimals)
-    total_price = sum(b.get('numeric_price', 0.0) for b in books)
-    avg_price = round(total_price / len(books), 2)
-    print(f"- Average Price: £{avg_price:.2f}")
-    
-    # 2. Highest Rated Books
-    max_rating = max((book.get('rating', 0) for book in books), default=0)
-    highest_rated = [book.get('title', 'Unknown') for book in books if book.get('rating', 0) == max_rating]
-    print(f"- Highest Rated Books (Rating {max_rating}):")
-    for title in highest_rated:
-        print(f"  * {title}")
-    
-    # 3. Number of Books in Each Rating Category
-    # Utilizing collections.Counter for Pythonic and efficient frequency counting
-    rating_frequencies = Counter(book.get('rating', 0) for book in books)
-    
-    print("- Number of Books in Each Rating Category:")
-    # Loop over 5 to 1 inclusive to ensure no valid category is omitted, even if 0
-    for rating in range(5, 0, -1):
-        count = rating_frequencies.get(rating, 0)
-        print(f"  * Rating {rating}: {count} books")
+    def analyze_users(self, df: pd.DataFrame) -> None:
+        """Computes analytical metrics securely on the Users dataset."""
+        print("\n[User Analysis]")
+        
+        if df.empty:
+            print("No user data available.")
+            return
+            
+        # 1. Total Users
+        print(f"- Total Users: {len(df)}")
+        
+        # 2. Unique Companies
+        # Drop NaN/Unknown companies
+        if 'company' in df.columns:
+            valid_companies = df['company'].dropna()
+            valid_companies = valid_companies[valid_companies != 'Unknown'].str.strip()
+            unique_companies = valid_companies.unique()
+            print(f"- Unique Companies: {len(unique_companies)}")
+            
+            # 3. Top 5 Companies (Alphabetically) using safe case-insensitive sorting
+            top_5_companies = sorted(unique_companies, key=lambda x: str(x).lower())[:5]
+            print(f"- Top 5 Companies (Alphabetically): {', '.join(str(c) for c in top_5_companies)}")
+        else:
+            print("- Unique Companies: 0\n- Top 5 Companies: None")
+
+    def analyze_books(self, df: pd.DataFrame) -> None:
+        """Computes analytical metrics securely on the Books dataset."""
+        print("\n[Book Analysis]")
+        
+        if df.empty or 'numeric_price' not in df.columns or 'rating' not in df.columns:
+            print("No book data available for analysis.")
+            return
+
+        # 1. Average Price (rounded mathematically to 2 decimals)
+        avg_price = df['numeric_price'].mean()
+        print(f"- Average Price: £{avg_price:.2f}")
+        
+        # 2. Highest Rated Books
+        max_rating = df['rating'].max()
+        highest_rated = df[df['rating'] == max_rating]['title'].tolist()
+        print(f"- Highest Rated Books (Rating {max_rating}):")
+        for title in highest_rated:
+            print(f"  * {title}")
+        
+        # 3. Number of Books in Each Rating Category
+        rating_counts = df['rating'].value_counts().to_dict()
+        
+        print("- Number of Books in Each Rating Category:")
+        for rating in range(5, 0, -1):
+            count = rating_counts.get(rating, 0)
+            print(f"  * Rating {rating}: {count} books")
+
+    def execute(self) -> None:
+        """Main execution block."""
+        print("--- Part D: Data Analysis (Powered by Pandas) ---")
+        
+        df_users = self.load_data(self.users_file)
+        df_books = self.load_data(self.books_file)
+        
+        if df_users.empty or df_books.empty:
+            print("Required JSON data missing or corrupt. Run data collection first.")
+            return
+
+        self.analyze_users(df_users)
+        self.analyze_books(df_books)
+        print()
 
 def analyze_data() -> None:
-    """Main execution block to orchestrate data analysis steps."""
-    print("--- Part D: Data Analysis ---")
-    
-    users = load_json_file(USERS_FILE)
-    books = load_json_file(BOOKS_FILE)
-    
-    if not users or not books:
-        print("Required JSON files missing or corrupt. Run data collection first.")
-        return
-        
-    if not isinstance(users, list) or not isinstance(books, list):
-        logging.error("Invalid JSON schema: Expected an array/list of records.")
-        return
-
-    analyze_users(users)
-    analyze_books(books)
-    print()
+    analyzer = DataAnalyzer()
+    analyzer.execute()
 
 if __name__ == "__main__":
     analyze_data()
