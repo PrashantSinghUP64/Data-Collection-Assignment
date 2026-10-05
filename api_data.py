@@ -1,137 +1,181 @@
 """
 api_data.py — Part A: API Data Collection
 
-Fetches user records from the JSONPlaceholder API, extracts required fields
-(Name, Username, Email, Company Name), and saves them to users.json.
+Fetches user records from the JSONPlaceholder REST API, validates and
+extracts the four required fields (Name, Username, Email, Company Name),
+then persists the cleaned dataset to users.json.
 """
-import json
-import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import requests
 
-API_URL = "https://jsonplaceholder.typicode.com/users"
-OUTPUT_FILE = "users.json"
-TIMEOUT_SEC = 10
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-}
+import config
+from utils import get_logger, save_json_file
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = get_logger(__name__)
 
 
 class APIClient:
-    """Handles all communication with the JSONPlaceholder Users API."""
+    """
+    Handles all communication with the JSONPlaceholder Users API.
+
+    Responsibilities:
+        - Fetching raw JSON from the remote endpoint.
+        - Validating the HTTP response and the JSON schema.
+        - Extracting and sanitising the four required user fields.
+        - Persisting the processed dataset.
+    """
+
+    # Required fields that every processed user record must contain
+    REQUIRED_FIELDS: tuple = ("name", "username", "email", "company")
 
     def __init__(self) -> None:
-        self.api_url = API_URL
-        self.output_file = OUTPUT_FILE
+        self.api_url: str = config.API_URL
+        self.output_file: str = config.USERS_FILE
+
+    # ------------------------------------------------------------------ #
+    #  Network Layer
+    # ------------------------------------------------------------------ #
 
     def fetch_users(self) -> List[Dict[str, Any]]:
-        """Fetches raw user data from the API with layered exception handling."""
-        try:
-            response = requests.get(self.api_url, headers=HEADERS, timeout=TIMEOUT_SEC)
+        """
+        Fetches the raw user array from the API.
 
+        Returns:
+            A list of raw user dicts, or [] on any network / parse failure.
+        """
+        logger.info("Fetching users from: %s", self.api_url)
+        try:
+            response = requests.get(
+                self.api_url,
+                headers=config.REQUEST_HEADERS,
+                timeout=config.REQUEST_TIMEOUT,
+            )
+
+            # Explicit HTTP status validation
             if response.status_code != 200:
-                logging.error(f"API returned HTTP {response.status_code}")
+                logger.error(
+                    "API returned HTTP %d — expected 200.", response.status_code
+                )
                 response.raise_for_status()
 
-            data = response.json()
-            if not isinstance(data, list):
-                logging.error("Unexpected API response format: expected a JSON array.")
+            payload = response.json()
+
+            # Schema validation: root must be a list
+            if not isinstance(payload, list):
+                logger.error(
+                    "Unexpected API response type: %s — expected list.",
+                    type(payload).__name__,
+                )
                 return []
 
-            return data
+            logger.info("Fetched %d raw user records.", len(payload))
+            return payload
 
-        except requests.exceptions.HTTPError as e:
-            logging.error(f"HTTP Error: {e}")
-        except requests.exceptions.ConnectionError as e:
-            logging.error(f"Connection Error: {e}")
-        except requests.exceptions.Timeout as e:
-            logging.error(f"Request timed out after {TIMEOUT_SEC}s: {e}")
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Request failed: {e}")
-        except ValueError as e:
-            logging.error(f"JSON parse error: {e}")
+        except requests.exceptions.HTTPError as exc:
+            logger.error("HTTP error: %s", exc)
+        except requests.exceptions.ConnectionError as exc:
+            logger.error("Connection error (check network): %s", exc)
+        except requests.exceptions.Timeout:
+            logger.error("Request timed out after %ds.", config.REQUEST_TIMEOUT)
+        except requests.exceptions.RequestException as exc:
+            logger.error("Request failed: %s", exc)
+        except ValueError as exc:
+            logger.error("JSON parse error: %s", exc)
 
         return []
 
+    # ------------------------------------------------------------------ #
+    #  Data Processing
+    # ------------------------------------------------------------------ #
+
+    def _extract_company_name(self, user: Dict[str, Any]) -> str:
+        """Safely traverses the nested company object."""
+        company = user.get("company")
+        if isinstance(company, dict):
+            return str(company.get("name", "Unknown")).strip()
+        return "Unknown"
+
     def process_users(self, users: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         """
-        Extracts Name, Username, Email, and Company Name from each raw user record.
-        All four fields are retained in the saved output, matching the assignment spec.
+        Extracts and sanitises the four required fields from each raw user record.
+        Skips malformed records and logs a warning for each one.
+
+        Args:
+            users: Raw user dicts returned by the API.
+
+        Returns:
+            A list of clean user dicts containing name, username, email, company.
         """
         processed: List[Dict[str, str]] = []
-        print("\n[Task A1] User Records:")
 
-        for user in users:
+        print("\n[Task A1] User Records:")
+        for idx, user in enumerate(users):
             if not isinstance(user, dict):
+                logger.warning("Skipping non-dict record at index %d.", idx)
                 continue
 
-            name = str(user.get("name", "Unknown"))
-            username = str(user.get("username", "Unknown"))
-            email = str(user.get("email", "Unknown"))
+            record: Dict[str, str] = {
+                "name":     str(user.get("name", "Unknown")).strip(),
+                "username": str(user.get("username", "Unknown")).strip(),
+                "email":    str(user.get("email", "Unknown")).strip(),
+                "company":  self._extract_company_name(user),
+            }
 
-            # Safe nested access for company
-            company_info = user.get("company")
-            company_name = (
-                company_info.get("name", "Unknown")
-                if isinstance(company_info, dict)
-                else "Unknown"
-            )
+            # Validate that no required field is empty after extraction
+            for field in self.REQUIRED_FIELDS:
+                if not record[field]:
+                    logger.warning(
+                        "Record %d has empty field '%s' — defaulting to 'Unknown'.",
+                        idx, field,
+                    )
+                    record[field] = "Unknown"
 
             print(
-                f"  Name: {name} | Username: {username} | "
-                f"Email: {email} | Company: {company_name}"
+                f"  Name: {record['name']:<28} | Username: {record['username']:<20} "
+                f"| Email: {record['email']:<32} | Company: {record['company']}"
             )
-
-            # All four required fields are stored
-            processed.append({
-                "name": name,
-                "username": username,
-                "email": email,
-                "company": company_name,
-            })
+            processed.append(record)
 
         return processed
 
-    def save_data(self, data: List[Dict[str, str]]) -> None:
-        """Persists processed user records to a UTF-8 JSON file."""
-        try:
-            with open(self.output_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            logging.info(f"[Task A5] Saved {len(data)} user records to '{self.output_file}'.")
-        except IOError as e:
-            logging.error(f"Failed to write '{self.output_file}': {e}")
+    # ------------------------------------------------------------------ #
+    #  Orchestration
+    # ------------------------------------------------------------------ #
 
     def execute(self) -> None:
-        """Orchestrates the API data-collection workflow (Tasks A1–A5)."""
-        print("--- Part A: API Data Collection ---")
+        """Runs the complete API data-collection workflow (Tasks A1–A5)."""
+        print("=" * 60)
+        print("  Part A: API Data Collection")
+        print("=" * 60)
 
-        users = self.fetch_users()
-        if not users:
-            print("No user data retrieved. Check network connectivity.")
+        raw_users = self.fetch_users()
+        if not raw_users:
+            logger.error("No user data retrieved. Aborting Part A.")
             return
 
-        processed = self.process_users(users)
+        processed = self.process_users(raw_users)
 
-        # Task A2
-        print(f"\n[Task A2] Total users fetched: {len(users)}")
+        # Task A2 — Total user count
+        print(f"\n[Task A2] Total users fetched: {len(raw_users)}")
 
-        # Task A3
+        # Task A3 — All company names
         companies = [u["company"] for u in processed if u["company"] != "Unknown"]
-        print(f"\n[Task A3] All company names: {companies}")
+        print(f"\n[Task A3] Company names:\n  {companies}")
 
-        # Task A4
-        print("\n[Task A4] Each user stored as a Python dict with: name, username, email, company.")
+        # Task A4 — Dict structure confirmation
+        print(
+            "\n[Task A4] Each record is a Python dict with keys: "
+            + ", ".join(self.REQUIRED_FIELDS)
+        )
 
-        # Task A5
-        self.save_data(processed)
+        # Task A5 — Persist
+        if save_json_file(self.output_file, processed, logger):
+            print(f"\n[Task A5] Saved {len(processed)} records to '{self.output_file}'.")
 
 
 def fetch_api_data() -> None:
-    """Public entry point used by main.py."""
+    """Public entry point consumed by main.py."""
     APIClient().execute()
 
 

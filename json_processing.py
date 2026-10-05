@@ -1,75 +1,95 @@
 """
 json_processing.py — Part C: JSON Processing
 
-Loads users.json and books.json, filters/aggregates records,
-and writes a combined summary to report.json.
+Loads, validates, filters, and aggregates the user and book datasets.
+Writes a structured summary report to report.json.
 """
-import json
-import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from utils import load_json_file  # shared utility — eliminates code duplication
+import config
+from utils import get_logger, load_json_file, save_json_file
 
-USERS_FILE = "users.json"
-BOOKS_FILE = "books.json"
-REPORT_FILE = "report.json"
+logger = get_logger(__name__)
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+def _validate_user_record(record: Dict[str, Any], idx: int) -> bool:
+    """Returns True if a user record contains all expected fields."""
+    required = {"name", "username", "email", "company"}
+    missing = required - record.keys()
+    if missing:
+        logger.warning("User record %d is missing fields: %s", idx, missing)
+        return False
+    return True
+
+
+def _validate_book_record(record: Dict[str, Any], idx: int) -> bool:
+    """Returns True if a book record contains all expected fields."""
+    required = {"title", "price", "numeric_price", "rating"}
+    missing = required - record.keys()
+    if missing:
+        logger.warning("Book record %d is missing fields: %s", idx, missing)
+        return False
+    return True
 
 
 def process_json_data() -> None:
-    """Loads, validates, filters, and aggregates user and book data (Tasks C1–C4)."""
-    print("--- Part C: JSON Processing ---")
+    """Executes the JSON processing workflow (Tasks C1–C4)."""
+    print("=" * 60)
+    print("  Part C: JSON Processing")
+    print("=" * 60)
 
-    users: List[Dict[str, Any]] = load_json_file(USERS_FILE)
-    books: List[Dict[str, Any]] = load_json_file(BOOKS_FILE)
+    users: List[Dict[str, Any]] = load_json_file(config.USERS_FILE)
+    books: List[Dict[str, Any]] = load_json_file(config.BOOKS_FILE)
 
     if not users or not books:
-        print("Required JSON data is missing. Run Parts A and B first.")
+        logger.error("Required data files are missing — run Parts A and B first.")
         return
 
+    # Deep per-record schema validation
+    valid_users = [u for i, u in enumerate(users) if _validate_user_record(u, i)]
+    valid_books = [b for i, b in enumerate(books) if _validate_book_record(b, i)]
+
     # Task C1 — Record counts
-    print(f"\n[Task C1] Total user records : {len(users)}")
-    print(f"[Task C1] Total book records  : {len(books)}")
+    print(f"\n[Task C1]")
+    print(f"  Valid user records : {len(valid_users)}")
+    print(f"  Valid book records : {len(valid_books)}")
 
     # Task C2 — Books with rating > 4
-    print("\n[Task C2] Books with rating > 4:")
-    high_rated = [b["title"] for b in books if b.get("rating", 0) > 4]
-    if high_rated:
-        for title in high_rated:
-            print(f"  - {title}")
-    else:
+    high_rated: List[str] = [
+        b["title"] for b in valid_books if b.get("rating", 0) > 4
+    ]
+    print(f"\n[Task C2] Books with rating > 4 ({len(high_rated)} found):")
+    for title in high_rated:
+        print(f"  - {title}")
+    if not high_rated:
         print("  None found.")
 
     # Task C3 — Users whose company name contains "Group"
-    print("\n[Task C3] Users in companies containing 'Group':")
-    group_users = [u for u in users if "Group" in u.get("company", "")]
-    if group_users:
-        for u in group_users:
-            print(f"  - {u.get('name')} | {u.get('company')}")
-    else:
+    group_users = [
+        u for u in valid_users if "Group" in u.get("company", "")
+    ]
+    print(f"\n[Task C3] Users in 'Group' companies ({len(group_users)} found):")
+    for u in group_users:
+        print(f"  - {u.get('name')} | {u.get('company')}")
+    if not group_users:
         print("  None found.")
 
-    # Task C4 — Combine into a summary report and save
-    avg_price: float = (
-        round(sum(b.get("numeric_price", 0.0) for b in books) / len(books), 2)
-        if books else 0.0
-    )
+    # Task C4 — Build and save the combined summary report
+    prices = [b.get("numeric_price", 0.0) for b in valid_books]
+    avg_price: float = round(sum(prices) / len(prices), 2) if prices else 0.0
 
     report: Dict[str, Any] = {
-        "total_users": len(users),
-        "total_books": len(books),
-        "average_book_price": avg_price,
-        "high_rated_books_count": len(high_rated),
+        "total_users": len(valid_users),
+        "total_books": len(valid_books),
+        "average_book_price_gbp": avg_price,
+        "books_rated_above_4": len(high_rated),
         "users_in_group_companies": len(group_users),
+        "high_rated_titles": high_rated,
     }
 
-    try:
-        with open(REPORT_FILE, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=4, ensure_ascii=False)
-        logging.info(f"[Task C4] Saved combined report to '{REPORT_FILE}': {report}")
-    except IOError as e:
-        logging.error(f"Failed to write '{REPORT_FILE}': {e}")
+    if save_json_file(config.REPORT_FILE, report, logger):
+        print(f"\n[Task C4] Saved combined report to '{config.REPORT_FILE}'.")
+        print(f"  → {report}")
 
 
 if __name__ == "__main__":

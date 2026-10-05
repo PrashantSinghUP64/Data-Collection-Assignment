@@ -2,32 +2,38 @@
 analysis.py — Part D: Data Analysis
 
 Performs quantitative analysis on collected user and book data using Pandas.
-Produces statistics on companies, book pricing, and star-rating distributions.
+Produces multi-dimensional statistics on pricing, ratings, and company distribution.
 """
-import logging
 from collections import Counter
-from typing import List
+from typing import Any, Dict, List
 
 import pandas as pd
 
-from utils import load_json_file  # shared utility — eliminates code duplication
+import config
+from utils import get_logger, load_json_file
 
-USERS_FILE = "users.json"
-BOOKS_FILE = "books.json"
-
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = get_logger(__name__)
 
 
 class DataAnalyzer:
-    """Performs structured analysis on user and book datasets using Pandas DataFrames."""
+    """
+    Performs structured analysis on user and book datasets.
+
+    Uses Pandas DataFrames for vectorised operations and
+    collections.Counter for frequency analysis.
+    """
 
     def __init__(self) -> None:
-        self.users_file = USERS_FILE
-        self.books_file = BOOKS_FILE
+        self.users_file: str = config.USERS_FILE
+        self.books_file: str = config.BOOKS_FILE
 
-    def _to_dataframe(self, filepath: str) -> pd.DataFrame:
+    # ------------------------------------------------------------------ #
+    #  Data Loading
+    # ------------------------------------------------------------------ #
+
+    def _load_dataframe(self, filepath: str) -> pd.DataFrame:
         """Loads validated JSON records into a Pandas DataFrame."""
-        records = load_json_file(filepath)
+        records: List[Dict[str, Any]] = load_json_file(filepath)
         if not records:
             return pd.DataFrame()
         return pd.DataFrame(records)
@@ -35,18 +41,25 @@ class DataAnalyzer:
     # ------------------------------------------------------------------ #
     #  User Analysis
     # ------------------------------------------------------------------ #
+
     def analyze_users(self, df: pd.DataFrame) -> None:
-        """Reports user-level statistics from the dataset."""
+        """
+        Computes user-level statistics:
+          - Total user count
+          - Unique company count
+          - Company frequency distribution (Top 5)
+          - Email domain distribution
+        """
         print("\n[User Analysis]")
 
         if df.empty or "company" not in df.columns:
             print("  No user data available.")
             return
 
-        # 1. Total Users
-        print(f"  Total Users: {len(df)}")
+        total: int = len(df)
+        print(f"  1. Total Users: {total}")
 
-        # 2. Unique Companies (excluding 'Unknown')
+        # Unique companies (exclude 'Unknown')
         valid_companies: pd.Series = (
             df["company"]
             .dropna()
@@ -54,60 +67,103 @@ class DataAnalyzer:
             .replace("Unknown", pd.NA)
             .dropna()
         )
-        unique_companies: List[str] = valid_companies.unique().tolist()
-        print(f"  Unique Companies: {len(unique_companies)}")
+        unique_count: int = valid_companies.nunique()
+        print(f"  2. Unique Companies: {unique_count}")
 
-        # 3. Top 5 Companies by frequency (meaningful ranking, not alphabetical)
-        top_5 = (
-            valid_companies.value_counts()
-            .head(5)
-            .reset_index()
-            .rename(columns={"index": "company", "company": "count"})
-        )
-        print("  Top 5 Companies by Frequency:")
-        for _, row in top_5.iterrows():
-            print(f"    - {row.iloc[0]}: {row.iloc[1]} user(s)")
+        # Top 5 companies by user frequency (meaningful metric)
+        top5 = valid_companies.value_counts().head(5)
+        print("  3. Top 5 Companies by User Count:")
+        for company, count in top5.items():
+            print(f"       {company}: {count} user(s)")
+
+        # Email domain distribution
+        if "email" in df.columns:
+            domains = df["email"].str.split("@").str[-1].value_counts()
+            print("  4. Email Domain Distribution (Top 5):")
+            for domain, cnt in domains.head(5).items():
+                print(f"       @{domain}: {cnt}")
 
     # ------------------------------------------------------------------ #
     #  Book Analysis
     # ------------------------------------------------------------------ #
+
     def analyze_books(self, df: pd.DataFrame) -> None:
-        """Reports book-level statistics from the dataset."""
+        """
+        Computes book-level statistics:
+          - Descriptive price statistics (mean, median, std, min, max)
+          - Price quartile distribution
+          - Highest and lowest rated books
+          - Rating frequency distribution
+          - Books above and below average price
+        """
         print("\n[Book Analysis]")
 
         if df.empty or "numeric_price" not in df.columns or "rating" not in df.columns:
             print("  No book data available.")
             return
 
-        # 1. Average Price
-        avg_price: float = df["numeric_price"].mean()
-        print(f"  Average Price: £{avg_price:.2f}")
+        prices: pd.Series = df["numeric_price"]
 
-        # 2. Highest Rated Books
+        # 1. Full descriptive price statistics
+        mean_price: float  = round(prices.mean(), 2)
+        median_price: float = round(prices.median(), 2)
+        std_price: float   = round(prices.std(), 2)
+        min_price: float   = round(prices.min(), 2)
+        max_price: float   = round(prices.max(), 2)
+
+        print(f"  1. Price Statistics (GBP):")
+        print(f"       Mean   : \u00a3{mean_price}")
+        print(f"       Median : \u00a3{median_price}")
+        print(f"       Std Dev: \u00a3{std_price}")
+        print(f"       Min    : \u00a3{min_price}")
+        print(f"       Max    : \u00a3{max_price}")
+
+        # 2. Price quartile distribution
+        q1 = round(prices.quantile(0.25), 2)
+        q3 = round(prices.quantile(0.75), 2)
+        iqr = round(q3 - q1, 2)
+        print(f"  2. Quartiles: Q1=\u00a3{q1}  Q3=\u00a3{q3}  IQR=\u00a3{iqr}")
+
+        # 3. Books above and below average price
+        above_avg: int = int((prices > mean_price).sum())
+        below_avg: int = int((prices < mean_price).sum())
+        print(f"  3. Books above average price: {above_avg}  |  Below average: {below_avg}")
+
+        # 4. Highest rated books
         max_rating: int = int(df["rating"].max())
-        highest_rated: List[str] = df[df["rating"] == max_rating]["title"].tolist()
-        print(f"  Highest Rated Books (Rating {max_rating}/5):")
-        for title in highest_rated:
-            print(f"    * {title}")
+        top_books: List[str] = df[df["rating"] == max_rating]["title"].tolist()
+        print(f"  4. Highest Rated Books (Rating {max_rating}/5):")
+        for title in top_books:
+            print(f"       * {title}")
 
-        # 3. Rating Distribution (1–5) using Counter for precise frequency mapping
+        # 5. Rating frequency distribution (1–5, no category omitted)
         rating_counts: Counter = Counter(df["rating"].tolist())
-        print("  Books per Rating Category:")
-        for rating in range(5, 0, -1):
-            print(f"    Rating {rating}: {rating_counts.get(rating, 0)} book(s)")
+        print("  5. Rating Distribution:")
+        for star in range(5, 0, -1):
+            bar = "\u2588" * rating_counts.get(star, 0)  # visual bar
+            print(f"       {star}\u2605: {bar} ({rating_counts.get(star, 0)})")
+
+        # 6. Most affordable highly-rated book (rating ≥ 4)
+        quality_picks = df[df["rating"] >= 4].nsmallest(3, "numeric_price")
+        print("  6. Best Value Books (Rating \u2265 4, Cheapest):")
+        for _, row in quality_picks.iterrows():
+            print(f"       {row['title'][:50]} — \u00a3{row['numeric_price']:.2f} (Rating {row['rating']})")
 
     # ------------------------------------------------------------------ #
-    #  Execution
+    #  Orchestration
     # ------------------------------------------------------------------ #
+
     def execute(self) -> None:
-        """Orchestrates the full data-analysis workflow."""
-        print("--- Part D: Data Analysis ---")
+        """Runs the complete data-analysis workflow."""
+        print("=" * 60)
+        print("  Part D: Data Analysis")
+        print("=" * 60)
 
-        df_users = self._to_dataframe(self.users_file)
-        df_books = self._to_dataframe(self.books_file)
+        df_users: pd.DataFrame = self._load_dataframe(self.users_file)
+        df_books: pd.DataFrame = self._load_dataframe(self.books_file)
 
         if df_users.empty or df_books.empty:
-            print("Required data files are missing or empty. Run Parts A and B first.")
+            logger.error("Required data files are missing — run Parts A and B first.")
             return
 
         self.analyze_users(df_users)
@@ -116,7 +172,7 @@ class DataAnalyzer:
 
 
 def analyze_data() -> None:
-    """Public entry point used by main.py."""
+    """Public entry point consumed by main.py."""
     DataAnalyzer().execute()
 
 

@@ -1,0 +1,12 @@
+2026-10-05 12:47:42 | INFO     | api_data | Fetching users from: https://jsonplaceholder.typicode.com/users
+2026-10-05 12:47:42 | ERROR    | api_data | Connection error (check network): down
+2026-10-05 12:47:42 | INFO     | api_data | Fetching users from: https://jsonplaceholder.typicode.com/users
+2026-10-05 12:47:42 | ERROR    | api_data | API returned HTTP 404 — expected 200.
+2026-10-05 12:47:42 | ERROR    | api_data | HTTP error: 404
+2026-10-05 12:47:42 | INFO     | api_data | Fetching users from: https://jsonplaceholder.typicode.com/users
+2026-10-05 12:47:42 | INFO     | api_data | Fetched 2 raw user records.
+2026-10-05 12:47:42 | INFO     | api_data | Fetching users from: https://jsonplaceholder.typicode.com/users
+2026-10-05 12:47:42 | ERROR    | api_data | Request timed out after 10s.
+2026-10-05 12:47:42 | WARNING  | api_data | Skipping non-dict record at index 1.
+2026-10-05 12:47:42 | WARNING  | api_data | Skipping non-dict record at index 2.
+2026-10-05 12:47:42 | WARNING  | api_data | Skipping non-dict record at index 3.
